@@ -1,15 +1,28 @@
 import dados from "../models/dados.js";
 
-const { bruxos } = dados;
+const {  bruxos, casas, varinhas, animais, pocoes  } = dados;
 
-const getAllBruxos = (req,res) => {
-    let resultado = bruxos;
-
+const getAllBruxos = (req, res) => {
+  const { casa } = req.query;
+  let resultado = bruxos;
+  if (casa) {
+    resultado = resultado.filter((b) =>
+      b.casa.toLowerCase().includes(casa.toLowerCase())
+    );
+  }
+  if (getAllBruxos) {
     res.status(200).json({
-        total: resultado.length,
-        bruxos: resultado
+      total: resultado.length,
+      data: resultado,
     });
-}
+  } else {
+    res.status(500).json({
+      status: 500,
+      success: false,
+      error: "INTERNAL_SERVER_ERROR"
+    });
+  }
+};
 
 const getBruxosById = (req, res) => {
     let id = req.params.id;
@@ -36,6 +49,29 @@ const getBruxosById = (req, res) => {
 
 const createBruxo = (req, res) => {
     const { nome, casa, anoNascimento, especialidade, nivelMagia, ativo } = req.body;   
+        const casasNomes = ["Lufa-Lufa", "Corvinal", "Sonserina", "Grifinória"];
+
+    let id = req.params.id;
+    id = parseInt(id);
+    const bruxoId = bruxos.find(b => b.id === id);
+
+    if (!casa || !casasNomes.includes(casa)) {
+        return res.status(400).json({
+            success: false,
+            status: 400,
+            error: "VALIDATION_ERROR",
+            message: `O campo de casa é obrigatório e deve ser uma das opções: ${casasNomes.join(", ")}!`,
+        });
+    };
+
+    if (varinhas.length < 3) {
+        return res.status(400).json({
+            success: false,
+            status: 400,
+            error: "VALIDATION_ERROR",
+            message: `O nome da varinha deve ter pelo menos 3 caracteres`,
+        });
+    };
 
     if (!nome || !casa || !anoNascimento) {
         return res.status(400).json({
@@ -83,126 +119,101 @@ const createBruxo = (req, res) => {
     });
 };
 
-const deleteBruxo = (req,res) => {
+const deleteBruxo = (req, res) => {
     const id = parseInt(req.params.id);
 
-    //por permissão
-
-    const usuario = req.query.usuario || req.body.usuario; 
+    // Verifica permissões
+    const usuario = req.query.usuario;
     const isAdmin = req.query.admin === 'true' || usuario === 'Diretor';
 
     if (!isAdmin) {
-    return res.status(403).json({
-      status: 403,
-      success: false,
-      message: "Permissões insuficientes: Apenas o Diretor pode expulsar alunos",
-      error: "ACAO_PROIBIDA",
-      required_role: "DIRETOR"
-    });
-}
-
-    if (isNaN(id)){
-        return res.status(400).json({
+        return res.status(403).json({
+            status: 403,
             success: false,
-            message: "O ID deve ser válido"
-        })
+            message: "Permissões insuficientes: apenas o Diretor pode expulsar alunos.",
+            error: "ACAO_PROIBIDA",
+            required_role: "DIRETOR"
+        });
+    }
+
+    if (isNaN(id)) {
+        return res.status(400).json({
+            status: 400,
+            success: false,
+            message: "O ID fornecido não é válido.",
+            error: "ID_INVALIDO"
+        });
     }
 
     const bruxoParaRemover = bruxos.find(b => b.id === id);
 
-    if(!bruxoParaRemover) {
+    if (!bruxoParaRemover) {
         return res.status(404).json({
             status: 404,
-            sucesso: false,
-            mensagem: `Não é possível expulsar: Feiticeiro ${id} não encontrado em Hogwarts`,
-            erro: "FEITICEIRO_NÃO_ENCONTRADO"
-}
-)
+            success: false,
+            message: `Não foi possível expulsar: bruxo com ID ${id} não encontrado em Hogwarts.`,
+            error: "BRUXO_NAO_ENCONTRADO"
+        });
     }
 
     const bruxosFiltrados = bruxos.filter(bruxo => bruxo.id !== id);
-
     bruxos.splice(0, bruxos.length, ...bruxosFiltrados);
 
-     res.status(200).json({
-            success: true,
-            message: `Bruxo com o id: ${id} foi apagado com sucesso`
-        })
-}
-
-
-
-const updateBruxo = (req, res) => {
-    const id = parseInt(req.params.id);
-    const { tipo, endereco, area, quartos, preco, disponivel, proprietario } = req.body;
-
-    const tiposDeImoveis = ["Apartamento", "Casa de Condomínio", "Terreno", "Kitnet", "Chácara", "Sala Comercial", "Loft", "Casa de Vila", "Apartamento Duplex", "Galpão Industrial", "Apartamento na Praia", "Casa Térrea", "Studio", "Fazenda", "Apartamento Garden", "Sobrado", "Terreno Comercial", "Apartamento 1 por andar", "Casa de Campo", "Flat/Aparthotel", "Prédio Comercial", "Ponto Comercial (Loja)", "Cobertura Penthouse", "Sítio", "Apartamento Compacto"];
-     
-    if (isNaN(id)) {
-        return res.status(400).json({
-            success: false,
-            message: "O id deve ser válido"
-        });
-    };
-
-    const imovelExiste = imoveis.find(i => i.id === id);
-
-    if (!imovelExiste) {
-        return res.status(404).json({
-            success: false,
-            message: "Imóvel não existe"
-        });
-    };
-
-    if (area < 0) {
-        return res.status(400).json({
-            success: false,
-            message: "Área deve ser um número maior que 0 metros quadrados"
-        })
-    } 
-
-    if (preco < 0) {
-        return res.status(400).json({
-            success: false,
-            message: "Preço deve ser um número maior que 0"
-        })
-    }
-
-    if (tipo) {
-        if (!tiposDeImoveis.includes(tipo)) {
-            return res.status(400).json({
-                success: false,
-                message: `O tipo "${tipo}" não é válido. Tipos permitidos: ${tiposDeImoveis.join(", ")}.`
-            });
-        };
-    };
-
-
-    const imoveisAtializados = imoveis.map(imovel =>
-        imovel.id === id
-            ? {
-                ...imovel,
-                ...(tipo && { tipo }),
-                ...(endereco && { endereco }),
-                ...(area && { area }),
-                ...(quartos && { quartos }),
-                ...(preco && { preco }),
-                ...(disponivel && { disponivel }),
-                ...(proprietario && { proprietario })
-            }
-            : imovel
-    );
-
-    imoveis.splice(0, imoveis.length, ...imoveisAtializados);
-
-    const imovelAtualizado = imoveis.find(i => i.id === id);
-
-    res.status(200).json({
+    return res.status(200).json({
+        status: 200,
         success: true,
-        message: "imovel atualizado com sucesso",
-        imovel: imovelAtualizado
+        message: `Bruxo com ID ${id} foi expulso com sucesso.`
     });
-
 };
 
-export { getAllBruxos, getBruxosById, createBruxo, deleteBruxo };
+const updateBruxo = (req, res) => {
+  const id = parseInt(req.params.id);
+  const { nome, casa, anoNascimento, varinha, mascote, patrono, especialidade, ativo } =
+    req.body;
+
+  if (isNaN(id)) {
+    return res.status(400).json({
+        status: 400,
+        success: false,
+        message: "Precisa ser um ID valido",
+        error: "INVALID_ID"
+    })
+};
+
+  
+  const bruxoExiste = bruxos.find((p) => p.id === id);
+  if (!bruxoExiste) {
+    return res.status(404).json({
+        status: 404,
+        success: false,
+        message: "Não foi possível atualizar: Mago não encontrado no registro mágico",
+        error: "MAGO_NAO_ENCONTRADO"
+    });
+  }
+  const bruxoAtualizado = bruxos.map((bruxo) =>
+    bruxo.id === id
+      ? {
+          ...bruxo,
+          ...(nome && { nome }),
+          ...(casa && { casa }),
+          ...(anoNascimento && { anoNascimento }),
+          ...(varinha && { varinha }),
+          ...(mascote && { mascote }),
+          ...(patrono && { patrono }),
+          ...(especialidade && { especialidade }),
+          ...(ativo && { ativo }),
+        }
+      : bruxo
+  );
+
+  bruxos.splice(0, bruxos.length, ...bruxoAtualizado);
+  const bruxoEditado = bruxos.find((p) => p.id === id);
+
+  return res.status(200).json({
+    success: true,
+    message: `bruxo editado com sucesso!`,
+    bruxo: bruxoEditado,
+  });
+}
+
+export { getAllBruxos, getBruxosById, createBruxo, deleteBruxo, updateBruxo };
