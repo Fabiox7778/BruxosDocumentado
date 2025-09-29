@@ -1,0 +1,19 @@
+{
+  "name": "bruxosducumentado",
+  "version": "1.0.0",
+  "main": "server.js",
+  "type": "module",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dev": "cls && nodemon server.js"
+  },
+  "keywords": ["MVC", "API", "Harry Poter", "Documentação", "SENAI"],
+  "author": "Fabio Trevizolli",
+  "license": "MIT",
+  "description": "Uma API de Harry Poter",
+  "dependencies": {
+    "dotenv": "^17.2.2",
+    "express": "^5.1.0",
+    "nodemon": "^3.1.10"
+  }
+}
